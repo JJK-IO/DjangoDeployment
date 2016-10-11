@@ -1,4 +1,8 @@
 # DjangoDeployment
+I've only tested this on Debian 8 server environment, but assuming your nginx is set up the same way with `/etc/nginx/sites-available` and `/etc/nginx/sites-enabled` you could modify this to work any any linux distro.
+
+The main thing you will need to just change `sudo apt update` to `sudo pacman -Syyu` etc. 
+Package names may be different in different distros too.
 
 ### Installation
 ```sh
