@@ -1,0 +1,303 @@
+#!/bin/bash
+
+function help() {
+  echo "usage: $0 [-a app_name] [-s server_name] [-t type] [-r git_url] [-p python_ver] [-h]"
+  echo "Welcome to the server setup tool!"
+  echo "  -h|--help Display this help menu"
+  echo "  -a|--app app_name Specify the app name, otherwise the tool will be interactive."
+  echo "  -s|--server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com"
+  echo "  -t|--type [d/G]] d or g for daphne or gunicorn respectively."
+  echo "  -r|--repository url] URL to the git repository that holds the project."
+  echo "  -p|--python [2/3]] Python version 2 or 3. Only type 2 or 3."
+  exit 0
+}
+
+function webapps_user() {
+  echo "Checking if webapps user exists"
+  ret=false
+  getent passwd webapps >/dev/null 2>&1 && ret=true
+
+  if $ret; then
+      echo "Webapps user exists already..."
+  else
+      echo "Webapps user does not exist. Creating new user..."
+      sudo useradd -m -d /webapps/ -s /bin/bash webapps
+      sudo chown -R webapps:webapps /webapps
+  fi
+}
+
+function update_server() {
+  echo "Updating server packages and installing required server apps"
+  sudo apt update
+  sudo apt upgrade -y
+  sudo apt install -y nginx supervisor python python-virtualenv python-dev python3 python3-virtualenv python3-dev git redis-server build-essential
+
+  sudo systemctl enable redis-server
+  sudo systemctl start redis-server
+}
+
+function clone_repository() {
+  if [[ -z "${REPOSITORY_URL}" ]]; then
+    echo "Please enter the repository URI: "
+    read REPOSITORY_URL
+  fi
+
+  echo "Cloning into ${APP_DIR}..."
+
+  if [[ -d "${APP_DIR}" ]]; then
+    sudo rm -r ${APP_DIR}
+  fi
+
+sudo su - webapps << _GIT
+rm -r ${APP_DIR}
+git clone ${REPOSITORY_URL} ${APP_DIR}
+_GIT
+
+}
+
+function create_log_dir() {
+  if [[ -d "$LOG_DIR" ]]; then
+    sudo rm -r ${LOG_DIR}
+  fi
+  echo "Creating log directory..."
+  sudo mkdir ${LOG_DIR}
+}
+
+function create_venv() {
+  echo "Creating virtual env..."
+  if [ -d ${VENV_DIR} ]; then
+    sudo rm -r ${VENV_DIR}
+  fi
+  sudo virtualenv -p /usr/bin/python${PYTHON_VERSION} ${VENV_DIR}
+  sudo chown -R webapps:webapps ${VENV_DIR}
+}
+
+function install_requirements() {
+  echo "Installing requirements..."
+sudo su - webapps <<_PIP
+source ${VENV_DIR}/bin/activate
+pip install -U pip
+pip install -U setuptools
+pip install -r ${APP_DIR}/requirements.txt
+_PIP
+}
+
+function check_app_type() {
+  if [[ -z "${APP_TYPE}" ]]; then
+    echo "(g)unicorn or (d)aphne?"
+    read APP_TYPE
+  fi
+  if [[ "${APP_TYPE,,}" == "g" ]]; then
+    APP_TYPE="gunicorn"
+  elif [[ "${APP_TYPE,,}" == "d" ]]; then
+    APP_TYPE="daphne"
+  else
+    echo "Your APP_TYPE was not a valid app type"
+    echo "Should we default to gunicorn? [y/N]"
+    read default_g
+    if [[ ${default_g,,} == "y" ]]; then
+      APP_TYPE="gunicorn"
+     else
+      echo "Please specify a proper app-type as [g]unicorn or [d]aphne and rerun script."
+      help
+    fi
+  fi
+}
+
+function write_nginx() {
+echo "Creating nginx files..."
+sudo su <<_NGINX
+cat > /etc/nginx/sites-available/${APP_NAME,,} <<_nginx
+upstream ${APP_NAME,,} {
+  server unix:${APP_DIR}/run/${APP_TYPE,,}.sock fail_timeout=0;
+}
+server {
+  listen 80;
+  listen [::]:80;
+  server_name ${SERVER_NAME,,}
+
+  client_body_in_file-only clean;
+  client_body_buffer_size 32K;
+
+  client_max_body_size 4G;
+
+  sendfile on;
+  send_timeout 900s;
+
+  access_log ${LOG_DIR}/nginx-access.log;
+  error_log  ${LOG_DIR}/nginx-error.log;
+
+  location /static/ {
+    alias ${APP_DIR}/static/;
+  }
+
+  location /media/ {
+    alias ${APP_DIR}/media/;
+  }
+
+  location / {
+    proxy_set_header X-Forwarded-For \\\$proxy_add_x_forwarded_for;
+    proxy_set_header Host \\\$http_host;
+    proxy_redirect off;
+    proxy_set_header Upgrade \\\$http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_http_version 1.1;
+    proxy_pass http://unix:${APP_DIR}/run/${APP_TYPE,,}.sock:/;
+  }
+
+  error_page 500 502 503 504 /500.html;
+  location = /500.html {
+    root ${APP_DIR}/static/;
+  }
+}
+_nginx
+
+echo "Attempting to create symbolic link from sites-available to site-enabled..."
+ln -s /etc/nginx/sites-available/${APP_NAME,,} /etc/nginx/sites-enabled/${APP_NAME,,}
+
+echo "Creating supervisor run scripts..."
+cat > /etc/supervisor/conf.d/${APP_TYPE,,}_${APP_NAME,,}.conf <<_supervisor
+[program:${APP_NAME,,}]
+command=${APP_DIR}/bin/${APP_TYPE,,}_start.sh
+user=webapps
+stdout_logfile=${LOG_DIR}/${APP_TYPE,,}_supervisor.log
+redirect_stderr=true
+environment=LANG=en_US.UTF-8,LC_ALL=en_US.UTF-8
+_supervisor
+_NGINX
+}
+
+
+function daphne_workers() {
+  if [[ ${APP_TYPE,,} == "daphne" ]]; then
+    echo "How many workers do you want to create for ${APP_NAME}?"
+    read workers
+    case ${workers} in
+      ''|*[!0-9]*)
+        echo "You must enter a number! Stopping Script..."
+        exit 2
+      ;;
+      *)
+        for (( c=1; c<=${workers}; c++ ))
+        do
+          echo "Creating worker: w${c}"
+sudo su <<_SVR
+cat > /etc/supervisor/conf.d/${APP_NAME,,}_w${c}.conf <<_worker
+[program:${APP_NAME,,}_w${c}]
+command=${APP_DIR}/bin/worker_start.sh
+user=webapps
+stdout_logfile=${LOG_DIR}/w${c}.log
+redirect_stderr=true
+environment=LANG=en_US.UTF-8,LC_ALL=en_US.UTF-8
+_worker
+_SVR
+        done
+      ;;
+    esac
+  fi
+}
+
+function start_server() {
+  echo "Would you like to try to start the server? [N/y]"
+  read server_start
+  if [[ ${server_start,,} == "y" ]]; then
+    sudo systemctl restart nginx
+    sudo supervisorctl reread
+    sudo supervisorctl restart ${APP_NAME,,}
+    if [[ ${APP_TYPE,,} == "daphne" ]]; then
+      for (( c=1; c<=${workers}; c++ ))
+      do
+        sudo supervisorctl restart ${APP_NAME,,}_w${c}
+      done
+    fi
+  fi
+}
+
+function init_db() {
+  echo "Would you like to initialize the database? [N/y]"
+  read init_db
+  if [[ ${init_db,,} == "y" ]]; then
+sudo su - webapps << _INITDB
+cd ${APP_DIR}
+source ${VENV_DIR}/bin/activate
+python manage.py migrate
+python manage.py collectstatic --noinput
+_INITDB
+  fi
+}
+
+if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
+  help
+fi
+while [[ $# -gt 1 ]]
+do
+  key="$1"
+
+  case $key in
+    -a|--app)
+    APP_NAME="$2"
+    shift # past argument
+    ;;
+    -s|--server)
+    SERVER_NAME="$2"
+    shift # past argument
+    ;;
+    -t|--type)
+    APP_TYPE="$2"
+    shift
+    ;;
+    -r|--repository)
+    REPOSITORY_URL="$2"
+    shift
+    ;;
+    -p|--python)
+    PYTHON_VERSION="$2"
+    shift # past argument
+    ;;
+    *)
+    ;;
+  esac
+  shift # past argument or value
+done
+
+if [[ -z ${APP_NAME} ]]; then
+  echo "What is the app name?"
+  read APP_NAME
+fi
+
+if [[ -z ${SERVER_NAME} ]]; then
+  echo "What is the server name for ${APP_NAME}? eg. rad.cti-kc.com"
+  read SERVER_NAME
+fi
+
+# Set PYTHON_VERSION as 2 if user didn't specify PYTHON_VERSION
+if [ -z "${PYTHON_VERSION}" ]; then
+  PYTHON_VERSION="2"
+fi
+
+echo APP NAME         = "${APP_NAME}"
+echo APP TYPE         = "${APP_TYPE}"
+echo SERVER NAME      = "${SERVER_NAME}"
+echo REPOSITORY URL   = "${REPOSITORY_URL}"
+echo PYTHON VERSION   = "${PYTHON_VERSION}"
+
+APP_DIR="/webapps/${APP_NAME,,}"
+LOG_DIR="/var/log/${APP_NAME,,}"
+VENV_DIR="/opt/${APP_NAME,,}"
+
+echo APP_DIR          = "${APP_DIR}"
+echo LOG_DIR          = "${LOG_DIR}"
+echo VENV_DIR         = "${VENV_DIR}"
+
+webapps_user
+update_server
+clone_repository
+create_venv
+install_requirements
+check_app_type
+write_nginx
+daphne_workers
+start_server
+init_db
+
+echo "Done"
