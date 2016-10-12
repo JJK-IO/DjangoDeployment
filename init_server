@@ -293,6 +293,7 @@ webapps_user
 update_server
 clone_repository
 create_venv
+create_log_dir
 install_requirements
 check_app_type
 write_nginx
