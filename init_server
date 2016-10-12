@@ -211,7 +211,7 @@ python manage.py collectstatic --noinput
 _INITDB
   fi
 }
-
+INTERACTIVE=true
 if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
   help
 fi
@@ -241,9 +241,7 @@ do
       shift
     ;;
     -i|--interactive)
-      if [[ ${2,,} == "y" ]]; then
-        INTERACTIVE=true
-      elif [[ ${2,,} == "n" ]]; then
+      if [[ ${2,,} == "n" ]]; then
         INTERACTIVE=false
       fi
       shift
