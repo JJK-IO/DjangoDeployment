@@ -9,7 +9,8 @@ function help() {
   echo "  -t|--type [d/G]] d or g for daphne or gunicorn respectively."
   echo "  -r|--repository url] URL to the git repository that holds the project."
   echo "  -p|--python [2/3]] Python version 2 or 3. Only type 2 or 3."
-  echo "  -i|--interaction [Y/n] run tool interactively or no."
+  echo "  -i|--interactive [Y/n] run tool interactively or no."
+  echo "       For interaction free tool running you must specify the -a -s -t -r -p flags"
   exit 0
 }
 
