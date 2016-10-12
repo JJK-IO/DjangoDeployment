@@ -267,30 +267,20 @@ if [[ ${INTERACTIVE} == true ]]; then
     read REPOSITORY_URL
   fi
 
-  # Set PYTHON_VERSION as 2 if user didn't specify PYTHON_VERSION
   if [ -z "${PYTHON_VERSION}" ]; then
-    PYTHON_VERSION="2"
+    echo "What python version would you like to serve this app under? [2/3]"
+    read PYTHON_VERSION
+    if [[ ${PYTHON_VERSION} != 2 ]] || [[ ${PYTHON_VERSION} != 3 ]]; then
+      echo "You must enter \"2\" or \"3\"."
+      exit 2
+    fi
   fi
 else
-  if [[ -z ${APP_NAME} ]]; then
-    exit 2
-  fi
-
-  if [[ -z "${APP_TYPE}" ]]; then
-    exit 2
-  fi
-
-  if [[ -z ${SERVER_NAME} ]]; then
-    exit 2
-  fi
-
-  if [[ -z "${REPOSITORY_URL}" ]]; then
-    exit 2
-  fi
-
-  if [ -z "${PYTHON_VERSION}" ]; then
-    exit 2
-  fi
+  test -z ${APP_NAME} && exit 2
+  test -z ${APP_TYPE} && exit 2
+  test -z ${SERVER_NAME} && exit 2
+  test -z ${REPOSITORY_URL} && exit 2
+  test -z ${PYTHON_VERSION} && exit 2
 fi
 
 echo APP NAME         = "${APP_NAME}"
