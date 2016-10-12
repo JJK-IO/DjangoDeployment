@@ -9,6 +9,7 @@ function help() {
   echo "  -t|--type [d/G]] d or g for daphne or gunicorn respectively."
   echo "  -r|--repository url] URL to the git repository that holds the project."
   echo "  -p|--python [2/3]] Python version 2 or 3. Only type 2 or 3."
+  echo "  -i|--interaction [Y/n] run tool interactively or no."
   exit 0
 }
 
@@ -31,49 +32,36 @@ function update_server() {
   sudo apt update
   sudo apt upgrade -y
   sudo apt install -y nginx supervisor python python-virtualenv python-dev python3 python3-virtualenv python3-dev git redis-server build-essential
-
   sudo systemctl enable redis-server
   sudo systemctl start redis-server
 }
 
 function clone_repository() {
-  if [[ -z "${REPOSITORY_URL}" ]]; then
-    echo "Please enter the repository URI: "
-    read REPOSITORY_URL
-  fi
-
   echo "Cloning into ${APP_DIR}..."
-
-  if [[ -d "${APP_DIR}" ]]; then
-    sudo rm -r ${APP_DIR}
-  fi
+  test -d ${APP_DIR} && sudo rm -r ${APP_DIR}
 
 sudo su - webapps << _GIT
-rm -r ${APP_DIR}
 git clone ${REPOSITORY_URL} ${APP_DIR}
 _GIT
 
 }
 
 function create_log_dir() {
-  if [[ -d "$LOG_DIR" ]]; then
-    sudo rm -r ${LOG_DIR}
-  fi
+  test -d ${LOG_DIR} && sudo rm -r ${LOG_DIR}
   echo "Creating log directory..."
   sudo mkdir ${LOG_DIR}
 }
 
 function create_venv() {
   echo "Creating virtual env..."
-  if [ -d ${VENV_DIR} ]; then
-    sudo rm -r ${VENV_DIR}
-  fi
+  test -d ${VENV_DIR} && sudo rm -r ${VENV_DIR}
   sudo virtualenv -p /usr/bin/python${PYTHON_VERSION} ${VENV_DIR}
   sudo chown -R webapps:webapps ${VENV_DIR}
 }
 
 function install_requirements() {
   echo "Installing requirements..."
+
 sudo su - webapps <<_PIP
 source ${VENV_DIR}/bin/activate
 pip install -U pip
@@ -83,24 +71,13 @@ _PIP
 }
 
 function check_app_type() {
-  if [[ -z "${APP_TYPE}" ]]; then
-    echo "(g)unicorn or (d)aphne?"
-    read APP_TYPE
-  fi
-  if [[ "${APP_TYPE,,}" == "g" ]]; then
+  if [[ "${APP_TYPE,,}" == "g" ]] || [[ "${APP_TYPE,,}" == "gunicorn" ]]; then
     APP_TYPE="gunicorn"
-  elif [[ "${APP_TYPE,,}" == "d" ]]; then
+  elif [[ "${APP_TYPE,,}" == "d" ]] || [[ "${APP_TYPE,,}" == "daphne" ]]; then
     APP_TYPE="daphne"
   else
-    echo "Your APP_TYPE was not a valid app type"
-    echo "Should we default to gunicorn? [y/N]"
-    read default_g
-    if [[ ${default_g,,} == "y" ]]; then
-      APP_TYPE="gunicorn"
-     else
-      echo "Please specify a proper app-type as [g]unicorn or [d]aphne and rerun script."
-      help
-    fi
+    echo "Your APP_TYPE was not a valid app type."
+    exit 2
   fi
 }
 
@@ -235,24 +212,32 @@ do
 
   case $key in
     -a|--app)
-    APP_NAME="$2"
-    shift # past argument
+      APP_NAME="$2"
+      shift
     ;;
     -s|--server)
-    SERVER_NAME="$2"
-    shift # past argument
+      SERVER_NAME="$2"
+      shift
     ;;
     -t|--type)
-    APP_TYPE="$2"
-    shift
+      APP_TYPE="$2"
+      shift
     ;;
     -r|--repository)
-    REPOSITORY_URL="$2"
-    shift
+      REPOSITORY_URL="$2"
+      shift
     ;;
     -p|--python)
-    PYTHON_VERSION="$2"
-    shift # past argument
+      PYTHON_VERSION="$2"
+      shift
+    ;;
+    -i|--interactive)
+      if [[ ${2,,} == "y" ]]; then
+        INTERACTIVE=true
+      elif [[ ${2,,} == "n" ]]; then
+        INTERACTIVE=false
+      fi
+      shift
     ;;
     *)
     ;;
@@ -260,19 +245,51 @@ do
   shift # past argument or value
 done
 
-if [[ -z ${APP_NAME} ]]; then
-  echo "What is the app name?"
-  read APP_NAME
-fi
+if [[ ${INTERACTIVE} == true ]]; then
+  if [[ -z ${APP_NAME} ]]; then
+    echo "What is the app name?"
+    read APP_NAME
+  fi
 
-if [[ -z ${SERVER_NAME} ]]; then
-  echo "What is the server name for ${APP_NAME}? eg. rad.cti-kc.com"
-  read SERVER_NAME
-fi
+  if [[ -z "${APP_TYPE}" ]]; then
+    echo "(g)unicorn or (d)aphne? [g/d]  (Hint: Type \"g\" or \"d\")"
+    read APP_TYPE
+  fi
 
-# Set PYTHON_VERSION as 2 if user didn't specify PYTHON_VERSION
-if [ -z "${PYTHON_VERSION}" ]; then
-  PYTHON_VERSION="2"
+  if [[ -z ${SERVER_NAME} ]]; then
+    echo "What is the server name for ${APP_NAME}? eg. jjk.io"
+    read SERVER_NAME
+  fi
+
+  if [[ -z "${REPOSITORY_URL}" ]]; then
+    echo "Please enter the repository URI: "
+    read REPOSITORY_URL
+  fi
+
+  # Set PYTHON_VERSION as 2 if user didn't specify PYTHON_VERSION
+  if [ -z "${PYTHON_VERSION}" ]; then
+    PYTHON_VERSION="2"
+  fi
+else
+  if [[ -z ${APP_NAME} ]]; then
+    exit 2
+  fi
+
+  if [[ -z "${APP_TYPE}" ]]; then
+    exit 2
+  fi
+
+  if [[ -z ${SERVER_NAME} ]]; then
+    exit 2
+  fi
+
+  if [[ -z "${REPOSITORY_URL}" ]]; then
+    exit 2
+  fi
+
+  if [ -z "${PYTHON_VERSION}" ]; then
+    exit 2
+  fi
 fi
 
 echo APP NAME         = "${APP_NAME}"
