@@ -121,7 +121,6 @@ exec ${VIRTUAL_ENV}/bin/python manage.py runworker
 ```
 
 ### Todos
- - Better automation for interaction free installation...
  - Improvements...
 
 ### License
