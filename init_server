@@ -276,7 +276,7 @@ if [[ ${INTERACTIVE} == true ]]; then
   if [ -z "${PYTHON_VERSION}" ]; then
     echo "What python version would you like to serve this app under? [2/3]"
     read PYTHON_VERSION
-    if [[ ${PYTHON_VERSION} != 2 ]] || [[ ${PYTHON_VERSION} != 3 ]]; then
+    if [[ !${PYTHON_VERSION} == 2 ]] || [[ !${PYTHON_VERSION} == 3 ]]; then
       echo "You must enter \"2\" or \"3\"."
       exit 2
     fi
