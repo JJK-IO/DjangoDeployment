@@ -10,6 +10,7 @@ function help() {
   echo "  -w|--workers [num_workers] specify how many workers you want if using daphne"
   echo "  -r|--repository url] URL to the git repository that holds the project."
   echo "  -p|--python [2/3]] Python version 2 or 3. Only type 2 or 3."
+  echo "  -r|--runserver [y/N] Run server after setup?"
   echo "  -d|--initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
   echo "  -i|--interactive [Y/n] run tool interactively or no."
   echo "       For interaction free tool running you must specify the -a -s -t -r -p flags"
@@ -185,11 +186,13 @@ function get_worker_count() {
 }
 
 function start_server() {
-  if [[ ${INTERACTIVE} == true ]]; then
-    echo "Would you like to try to start the server? [N/y]"
-    read server_start
-  else
-    server_start="y"
+  if [[ -z ${server_start} ]]; then
+    if [[ ${INTERACTIVE} == true ]]; then
+      echo "Would you like to try to start the server? [N/y]"
+      read server_start
+    else
+      server_start="y"
+    fi
   fi
   if [[ ${server_start,,} == "y" ]]; then
     sudo systemctl restart nginx
@@ -202,14 +205,17 @@ function start_server() {
       done
     fi
   fi
+
 }
 
 function init_db() {
-  if [[ ${INTERACTIVE} == true ]]; then
-    echo "Would you like to initialize the database? [N/y]"
-    read init_db
-  else
-    init_db="n"
+  if [[ -z ${init_db} ]]; then
+    if [[ ${INTERACTIVE} == true ]]; then
+      echo "Would you like to initialize the database? [N/y]"
+      read init_db
+    else
+      init_db="n"
+    fi
   fi
   if [[ ${init_db,,} == "y" ]]; then
 sudo su - webapps << _INITDB
@@ -251,6 +257,10 @@ do
     ;;
     -p|--python)
       PYTHON_VERSION="$2"
+      shift
+    ;;
+    -r|--runserver)
+      server_start="$2"
       shift
     ;;
     -d|--initdb)
