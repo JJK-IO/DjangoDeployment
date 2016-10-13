@@ -47,7 +47,6 @@ function clone_repository() {
 sudo su - webapps << _GIT
 git clone ${REPOSITORY_URL} ${APP_DIR} || exit 2
 _GIT
-
 }
 
 function create_log_dir() {
@@ -259,7 +258,7 @@ do
       PYTHON_VERSION="$2"
       shift
     ;;
-    -r|--runserver)
+    -rs|--runserver)
       server_start="$2"
       shift
     ;;
