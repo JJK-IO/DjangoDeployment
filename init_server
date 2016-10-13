@@ -9,6 +9,7 @@ function help() {
   echo "  -t|--type [d/G]] d or g for daphne or gunicorn respectively."
   echo "  -r|--repository url] URL to the git repository that holds the project."
   echo "  -p|--python [2/3]] Python version 2 or 3. Only type 2 or 3."
+  echo "  -d|--initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
   echo "  -i|--interactive [Y/n] run tool interactively or no."
   echo "       For interaction free tool running you must specify the -a -s -t -r -p flags"
   exit 0
@@ -148,17 +149,9 @@ _NGINX
 
 function daphne_workers() {
   if [[ ${APP_TYPE,,} == "daphne" ]]; then
-    echo "How many workers do you want to create for ${APP_NAME}?"
-    read workers
-    case ${workers} in
-      ''|*[!0-9]*)
-        echo "You must enter a number! Stopping Script..."
-        exit 2
-      ;;
-      *)
-        for (( c=1; c<=${workers}; c++ ))
-        do
-          echo "Creating worker: w${c}"
+    for (( c=1; c<=${workers}; c++ ))
+    do
+      echo "Creating worker: w${c}"
 sudo su <<_SVR
 cat > /etc/supervisor/conf.d/${APP_NAME,,}_w${c}.conf <<_worker
 [program:${APP_NAME,,}_w${c}]
@@ -169,7 +162,20 @@ redirect_stderr=true
 environment=LANG=en_US.UTF-8,LC_ALL=en_US.UTF-8
 _worker
 _SVR
-        done
+    done
+  fi
+}
+
+function get_worker_count() {
+  if [[ ${APP_TYPE,,} == "daphne" ]]; then
+    echo "How many workers do you want to create for ${APP_NAME}?"
+    read workers
+    case ${workers} in
+      ''|*[!0-9]*)
+        echo "You must enter a number!"
+        exit 2
+      ;;
+      *)
       ;;
     esac
   fi
@@ -261,6 +267,7 @@ if [[ ${INTERACTIVE} == true ]]; then
   if [[ -z "${APP_TYPE}" ]]; then
     echo "(g)unicorn or (d)aphne? [g/d]  (Hint: Type \"g\" or \"d\")"
     read APP_TYPE
+    get_worker_count
   fi
 
   if [[ -z ${SERVER_NAME} ]]; then
@@ -291,6 +298,9 @@ fi
 
 echo APP NAME         = "${APP_NAME}"
 echo APP TYPE         = "${APP_TYPE}"
+if [[ ${APP_TYPE,,} == "daphne" ]]; then
+  echo DAPHNE WORKERS   = "${SERVER_NAME}"
+fi
 echo SERVER NAME      = "${SERVER_NAME}"
 echo REPOSITORY URL   = "${REPOSITORY_URL}"
 echo PYTHON VERSION   = "${PYTHON_VERSION}"
