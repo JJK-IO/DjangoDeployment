@@ -75,10 +75,8 @@ _PIP
 
 function check_app_type() {
   if [[ "${APP_TYPE,,}" == "g" ]] || [[ "${APP_TYPE,,}" == "gunicorn" ]]; then
-    echo 'gunicorn'
     APP_TYPE="gunicorn"
   elif [[ "${APP_TYPE,,}" == "d" ]] || [[ "${APP_TYPE,,}" == "daphne" ]]; then
-    echo 'daphne'
     APP_TYPE="daphne"
   else
     echo "Your APP_TYPE was not a valid app type."
@@ -209,7 +207,7 @@ function init_db() {
     echo "Would you like to initialize the database? [N/y]"
     read init_db
   else
-    init_db="y"
+    init_db="n"
   fi
   if [[ ${init_db,,} == "y" ]]; then
 sudo su - webapps << _INITDB
@@ -241,12 +239,20 @@ do
       APP_TYPE="$2"
       shift
     ;;
+    -w|--workers)
+      WORKER_NUM="$2"
+      shift
+    ;;
     -r|--repository)
       REPOSITORY_URL="$2"
       shift
     ;;
     -p|--python)
       PYTHON_VERSION="$2"
+      shift
+    ;;
+    -d|--initdb)
+      init_db="$2"
       shift
     ;;
     -i|--interactive)
