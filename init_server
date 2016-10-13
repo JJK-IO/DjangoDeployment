@@ -169,16 +169,18 @@ _SVR
 
 function get_worker_count() {
   if [[ ${APP_TYPE,,} == "daphne" ]]; then
-    echo "How many workers do you want to create for ${APP_NAME}?"
-    read WORKER_NUM
-    case ${WORKER_NUM} in
-      ''|*[!0-9]*)
-        echo "You must enter a number!"
-        exit 2
-      ;;
-      *)
-      ;;
-    esac
+    if [[ -z ${WORKER_NUM} ]]; then
+      echo "How many workers do you want to create for ${APP_NAME}?"
+      read WORKER_NUM
+      case ${WORKER_NUM} in
+        ''|*[!0-9]*)
+          echo "You must enter a number!"
+          exit 2
+        ;;
+        *)
+        ;;
+      esac
+    fi
   fi
 }
 
