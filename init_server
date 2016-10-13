@@ -74,8 +74,10 @@ _PIP
 
 function check_app_type() {
   if [[ "${APP_TYPE,,}" == "g" ]] || [[ "${APP_TYPE,,}" == "gunicorn" ]]; then
+    echo 'gunicorn'
     APP_TYPE="gunicorn"
   elif [[ "${APP_TYPE,,}" == "d" ]] || [[ "${APP_TYPE,,}" == "daphne" ]]; then
+    echo 'daphne'
     APP_TYPE="daphne"
   else
     echo "Your APP_TYPE was not a valid app type."
