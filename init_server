@@ -267,6 +267,7 @@ if [[ ${INTERACTIVE} == true ]]; then
   if [[ -z "${APP_TYPE}" ]]; then
     echo "(g)unicorn or (d)aphne? [g/d]  (Hint: Type \"g\" or \"d\")"
     read APP_TYPE
+    check_app_type
     get_worker_count
   fi
 
