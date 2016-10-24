@@ -20,7 +20,7 @@ Welcome to the server setup tool!
   --help Display this help menu
   --app app_name Specify the app name, otherwise the tool will be interactive.
   --server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com
-  --type [d/G]] d or g for daphne or gunicorn respectively.
+  --type [daphne/gunicorn]] daphne or g for daphne or gunicorn respectively.
   --workers [num_workers] specify how many workers you want if using daphne
   --repository [url] URL to the git repository that holds the project.
   --python [2/3]] Python version 2 or 3. Only type 2 or 3.
@@ -32,7 +32,7 @@ Welcome to the server setup tool!
 
 ### Example
 ```sh
-init_server -a jjk -s jjk.io -t g -r https://git.repo -p 2
+init_server --app jjk --server jjk.io --type gunicorn --repository https://git.repo --python 2
 ```
 
 ### Requirements
