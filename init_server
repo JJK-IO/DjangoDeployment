@@ -13,7 +13,7 @@ function help() {
   echo "  --runserver [y/N] Run server after setup?"
   echo "  --initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
   echo "  --interactive [Y/n] run tool interactively or no."
-  echo "       For interaction free tool running you must specify the -a -s -t -r -p flags"
+  echo "       For interaction free tool running you must specify the --app --server --type [--workers if --type d] --repository --python flags"
   exit 0
 }
 
@@ -190,7 +190,7 @@ function start_server() {
       echo "Would you like to try to start the server? [N/y]"
       read server_start
     else
-      server_start="y"
+      server_start="n"
     fi
   fi
   if [[ ${server_start,,} == "y" ]]; then
@@ -313,7 +313,9 @@ else
   test -z ${APP_NAME} && exit 2
   test -z ${APP_TYPE} && exit 2
   check_app_type
-  test -z ${WORKER_NUM} && exit 2
+  if [ ${APP_TYPE} == "daphne" ]; then
+    test -z ${WORKER_NUM} && exit 2
+  fi
   test -z ${SERVER_NAME} && exit 2
   test -z ${REPOSITORY_URL} && exit 2
   test -z ${PYTHON_VERSION} && exit 2

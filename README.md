@@ -15,14 +15,19 @@ $ curl -O https://github.com/JesterJK/DjangoDeployment/archive/master.zip
 
 ### Usage
 ```
-  usage: $0 [-a app_name] [-s server_name] [-t type] [-r git_url] [-p python_ver] [-h]
-  Welcome to the server setup tool!
-    -h|--help Display this help menu
-    -a|--app app_name Specify the app name, otherwise the tool will be interactive.
-    -s|--server server_name Specify the sever name/host name that NGINX will use to server the apion. eg. google.com
-    -t|--type [d/G]] d or g for daphne or gunicorn respectively.
-    -r|--repository url] URL to the git repository that holds the project.
-    -p|--python [2/3]] Python version 2 or 3. Only type 2 or 3.
+usage: ./init_server [-a app_name] [-s server_name] [-t type] [-r git_url] [-p python_ver] [-h]
+Welcome to the server setup tool!
+  --help Display this help menu
+  --app app_name Specify the app name, otherwise the tool will be interactive.
+  --server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com
+  --type [d/G]] d or g for daphne or gunicorn respectively.
+  --workers [num_workers] specify how many workers you want if using daphne
+  --repository [url] URL to the git repository that holds the project.
+  --python [2/3]] Python version 2 or 3. Only type 2 or 3.
+  --runserver [y/N] Run server after setup?
+  --initdb [y/N] Initialize the database via manage.py migrate? Defaults to no
+  --interactive [Y/n] run tool interactively or no.
+       For interaction free tool running you must specify the --app --server --type [--workers if --type d] --repository --python flags
 ```
 
 ### Example
