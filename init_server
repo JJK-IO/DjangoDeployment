@@ -3,16 +3,16 @@
 function help() {
   echo "usage: $0 [-a app_name] [-s server_name] [-t type] [-r git_url] [-p python_ver] [-h]"
   echo "Welcome to the server setup tool!"
-  echo "  -h|--help Display this help menu"
-  echo "  -a|--app app_name Specify the app name, otherwise the tool will be interactive."
-  echo "  -s|--server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com"
-  echo "  -t|--type [d/G]] d or g for daphne or gunicorn respectively."
-  echo "  -w|--workers [num_workers] specify how many workers you want if using daphne"
-  echo "  -r|--repository url] URL to the git repository that holds the project."
-  echo "  -p|--python [2/3]] Python version 2 or 3. Only type 2 or 3."
-  echo "  -r|--runserver [y/N] Run server after setup?"
-  echo "  -d|--initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
-  echo "  -i|--interactive [Y/n] run tool interactively or no."
+  echo "  --help Display this help menu"
+  echo "  --app app_name Specify the app name, otherwise the tool will be interactive."
+  echo "  --server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com"
+  echo "  --type [d/G]] d or g for daphne or gunicorn respectively."
+  echo "  --workers [num_workers] specify how many workers you want if using daphne"
+  echo "  --repository url] URL to the git repository that holds the project."
+  echo "  --python [2/3]] Python version 2 or 3. Only type 2 or 3."
+  echo "  --runserver [y/N] Run server after setup?"
+  echo "  --initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
+  echo "  --interactive [Y/n] run tool interactively or no."
   echo "       For interaction free tool running you must specify the -a -s -t -r -p flags"
   exit 0
 }
@@ -204,7 +204,6 @@ function start_server() {
       done
     fi
   fi
-
 }
 
 function init_db() {
@@ -234,39 +233,39 @@ do
   key="$1"
 
   case $key in
-    -a|--app)
+    --app)
       APP_NAME="$2"
       shift
     ;;
-    -s|--server)
+    --server)
       SERVER_NAME="$2"
       shift
     ;;
-    -t|--type)
+    --type)
       APP_TYPE="$2"
       shift
     ;;
-    -w|--workers)
+    --workers)
       WORKER_NUM="$2"
       shift
     ;;
-    -r|--repository)
+    --repository)
       REPOSITORY_URL="$2"
       shift
     ;;
-    -p|--python)
+    --python)
       PYTHON_VERSION="$2"
       shift
     ;;
-    -rs|--runserver)
+    --runserver)
       server_start="$2"
       shift
     ;;
-    -d|--initdb)
+    --initdb)
       init_db="$2"
       shift
     ;;
-    -i|--interactive)
+    --interactive)
       if [[ ${2,,} == "n" ]]; then
         INTERACTIVE=false
       fi
@@ -318,9 +317,7 @@ else
   test -z ${SERVER_NAME} && exit 2
   test -z ${REPOSITORY_URL} && exit 2
   test -z ${PYTHON_VERSION} && exit 2
-
 fi
-
 
 echo APP NAME         = "${APP_NAME}"
 echo APP TYPE         = "${APP_TYPE}"
