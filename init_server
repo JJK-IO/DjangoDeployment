@@ -3,14 +3,16 @@
 function help() {
   echo "usage: $0 [-a app_name] [-s server_name] [-t type] [-r git_url] [-p python_ver] [-h]"
   echo "Welcome to the server setup tool!"
-  echo "  -h|--help Display this help menu"
-  echo "  -a|--app app_name Specify the app name, otherwise the tool will be interactive."
-  echo "  -s|--server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com"
-  echo "  -t|--type [d/G]] d or g for daphne or gunicorn respectively."
-  echo "  -r|--repository url] URL to the git repository that holds the project."
-  echo "  -p|--python [2/3]] Python version 2 or 3. Only type 2 or 3."
-  echo "  -d|--initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
-  echo "  -i|--interactive [Y/n] run tool interactively or no."
+  echo "  --help Display this help menu"
+  echo "  --app app_name Specify the app name, otherwise the tool will be interactive."
+  echo "  --server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com"
+  echo "  --type [d/G]] d or g for daphne or gunicorn respectively."
+  echo "  --workers [num_workers] specify how many workers you want if using daphne"
+  echo "  --repository url] URL to the git repository that holds the project."
+  echo "  --python [2/3]] Python version 2 or 3. Only type 2 or 3."
+  echo "  --runserver [y/N] Run server after setup?"
+  echo "  --initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
+  echo "  --interactive [Y/n] run tool interactively or no."
   echo "       For interaction free tool running you must specify the -a -s -t -r -p flags"
   exit 0
 }
@@ -149,7 +151,7 @@ _NGINX
 
 function daphne_workers() {
   if [[ ${APP_TYPE,,} == "daphne" ]]; then
-    for (( c=1; c<=${workers}; c++ ))
+    for (( c=1; c<=${WORKER_NUM}; c++ ))
     do
       echo "Creating worker: w${c}"
 sudo su <<_SVR
@@ -168,32 +170,36 @@ _SVR
 
 function get_worker_count() {
   if [[ ${APP_TYPE,,} == "daphne" ]]; then
-    echo "How many workers do you want to create for ${APP_NAME}?"
-    read workers
-    case ${workers} in
-      ''|*[!0-9]*)
-        echo "You must enter a number!"
-        exit 2
-      ;;
-      *)
-      ;;
-    esac
+    if [[ -z ${WORKER_NUM} ]]; then
+      echo "How many workers do you want to create for ${APP_NAME}?"
+      read WORKER_NUM
+      case ${WORKER_NUM} in
+        ''|*[!0-9]*)
+          echo "You must enter a number!"
+          exit 2
+        ;;
+        *)
+        ;;
+      esac
+    fi
   fi
 }
 
 function start_server() {
-  if [[ ${INTERACTIVE} == true ]]; then
-    echo "Would you like to try to start the server? [N/y]"
-    read server_start
-  else
-    server_start="y"
+  if [[ -z ${server_start} ]]; then
+    if [[ ${INTERACTIVE} == true ]]; then
+      echo "Would you like to try to start the server? [N/y]"
+      read server_start
+    else
+      server_start="y"
+    fi
   fi
   if [[ ${server_start,,} == "y" ]]; then
     sudo systemctl restart nginx
     sudo supervisorctl reread
     sudo supervisorctl restart ${APP_NAME,,}
     if [[ ${APP_TYPE,,} == "daphne" ]]; then
-      for (( c=1; c<=${workers}; c++ ))
+      for (( c=1; c<=${WORKER_NUM}; c++ ))
       do
         sudo supervisorctl restart ${APP_NAME,,}_w${c}
       done
@@ -202,11 +208,13 @@ function start_server() {
 }
 
 function init_db() {
-  if [[ ${INTERACTIVE} == true ]]; then
-    echo "Would you like to initialize the database? [N/y]"
-    read init_db
-  else
-    init_db="y"
+  if [[ -z ${init_db} ]]; then
+    if [[ ${INTERACTIVE} == true ]]; then
+      echo "Would you like to initialize the database? [N/y]"
+      read init_db
+    else
+      init_db="n"
+    fi
   fi
   if [[ ${init_db,,} == "y" ]]; then
 sudo su - webapps << _INITDB
@@ -226,27 +234,39 @@ do
   key="$1"
 
   case $key in
-    -a|--app)
+    --app)
       APP_NAME="$2"
       shift
     ;;
-    -s|--server)
+    --server)
       SERVER_NAME="$2"
       shift
     ;;
-    -t|--type)
+    --type)
       APP_TYPE="$2"
       shift
     ;;
-    -r|--repository)
+    --workers)
+      WORKER_NUM="$2"
+      shift
+    ;;
+    --repository)
       REPOSITORY_URL="$2"
       shift
     ;;
-    -p|--python)
+    --python)
       PYTHON_VERSION="$2"
       shift
     ;;
-    -i|--interactive)
+    --runserver)
+      server_start="$2"
+      shift
+    ;;
+    --initdb)
+      init_db="$2"
+      shift
+    ;;
+    --interactive)
       if [[ ${2,,} == "n" ]]; then
         INTERACTIVE=false
       fi
@@ -267,8 +287,10 @@ if [[ ${INTERACTIVE} == true ]]; then
   if [[ -z "${APP_TYPE}" ]]; then
     echo "(g)unicorn or (d)aphne? [g/d]  (Hint: Type \"g\" or \"d\")"
     read APP_TYPE
-    get_worker_count
   fi
+
+  check_app_type
+  get_worker_count
 
   if [[ -z ${SERVER_NAME} ]]; then
     echo "What is the server name for ${APP_NAME}? eg. jjk.io"
@@ -291,15 +313,19 @@ if [[ ${INTERACTIVE} == true ]]; then
 else
   test -z ${APP_NAME} && exit 2
   test -z ${APP_TYPE} && exit 2
+  check_app_type
+  test -z ${WORKER_NUM} && exit 2
   test -z ${SERVER_NAME} && exit 2
   test -z ${REPOSITORY_URL} && exit 2
   test -z ${PYTHON_VERSION} && exit 2
+
 fi
+
 
 echo APP NAME         = "${APP_NAME}"
 echo APP TYPE         = "${APP_TYPE}"
 if [[ ${APP_TYPE,,} == "daphne" ]]; then
-  echo DAPHNE WORKERS   = "${SERVER_NAME}"
+  echo DAPHNE WORKERS   = "${WORKER_NUM}"
 fi
 echo SERVER NAME      = "${SERVER_NAME}"
 echo REPOSITORY URL   = "${REPOSITORY_URL}"
