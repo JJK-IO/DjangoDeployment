@@ -8,7 +8,8 @@ function help() {
   echo "  --server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com"
   echo "  --type [d/G]] d or g for daphne or gunicorn respectively."
   echo "  --workers [num_workers] specify how many workers you want if using daphne"
-  echo "  --repository url] URL to the git repository that holds the project."
+  echo "  --repository [url] URL to the git repository that holds the project."
+  echo "  --branch [branch_name] URL to the git repository that holds the project."
   echo "  --python [2/3]] Python version 2 or 3. Only type 2 or 3."
   echo "  --runserver [y/N] Run server after setup?"
   echo "  --initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
@@ -44,8 +45,12 @@ function clone_repository() {
   echo "Cloning into ${APP_DIR}..."
   test -d ${APP_DIR} && sudo rm -r ${APP_DIR}
 
+  if [[ -z ${BRANCH} ]]; then
+    $BRANCH = "master"
+  fi
+
 sudo su - webapps << _GIT
-git clone ${REPOSITORY_URL} ${APP_DIR} || exit 2
+git clone -b ${BRANCH} ${REPOSITORY_URL} ${APP_DIR} || exit 2
 _GIT
 }
 
@@ -196,6 +201,7 @@ function start_server() {
   if [[ ${server_start,,} == "y" ]]; then
     sudo systemctl restart nginx
     sudo supervisorctl reread
+    sudo supervisorctl reload
     sudo supervisorctl restart ${APP_NAME,,}
     if [[ ${APP_TYPE,,} == "daphne" ]]; then
       for (( c=1; c<=${WORKER_NUM}; c++ ))
@@ -251,6 +257,10 @@ do
     ;;
     --repository)
       REPOSITORY_URL="$2"
+      shift
+    ;;
+    --branch)
+      BRANCH="$2"
       shift
     ;;
     --python)
