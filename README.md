@@ -15,7 +15,7 @@ $ curl -O https://github.com/JesterJK/DjangoDeployment/archive/master.zip
 
 ### Usage
 ```
-usage: ./init_server [-a app_name] [-s server_name] [-t type] [-r git_url] [-p python_ver] [-h]
+usage: ./init_server [--app app_name] [--server server_name] [--type type] [--repository git_url] [--python python_ver] [--help]
 Welcome to the server setup tool!
   --help Display this help menu
   --app app_name Specify the app name, otherwise the tool will be interactive.

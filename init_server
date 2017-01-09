@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function help() {
-  echo "usage: $0 [-a app_name] [-s server_name] [-t type] [-r git_url] [-p python_ver] [-h]"
+  echo "usage: $0 [--app app_name] [--server server_name] [--type type] [--repository git_url] [--python python_ver] [--help]"
   echo "Welcome to the server setup tool!"
   echo "  --help Display this help menu"
   echo "  --app app_name Specify the app name, otherwise the tool will be interactive."
