@@ -46,7 +46,7 @@ function clone_repository() {
   test -d ${APP_DIR} && sudo rm -r ${APP_DIR}
 
   if [[ -z ${BRANCH} ]]; then
-    $BRANCH = "master"
+    $BRANCH="master"
   fi
 
 sudo su - webapps << _GIT
