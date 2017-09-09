@@ -15,14 +15,15 @@ $ curl -O https://github.com/JesterJK/DjangoDeployment/archive/master.zip
 
 ### Usage
 ```
-usage: ./init_server [--app app_name] [--server server_name] [--type type] [--repository git_url] [--python python_ver] [--help]
+usage: $0 [--app app_name] [--server server_name] [--type type] [--repository git_url] [--python python_ver] [--help]
 Welcome to the server setup tool!
   --help Display this help menu
   --app app_name Specify the app name, otherwise the tool will be interactive.
   --server server_name Specify the sever name/host name that NGINX will use to server the application. eg. google.com
-  --type [daphne/gunicorn]] daphne or g for daphne or gunicorn respectively.
+  --type [d/G]] d or g for daphne or gunicorn respectively.
   --workers [num_workers] specify how many workers you want if using daphne
   --repository [url] URL to the git repository that holds the project.
+  --branch [branch_name] URL to the git repository that holds the project.
   --python [2/3]] Python version 2 or 3. Only type 2 or 3.
   --runserver [y/N] Run server after setup?
   --initdb [y/N] Initialize the database via manage.py migrate? Defaults to no
@@ -80,12 +81,12 @@ To run under daphne you need run daphne and your workers separately, thus you mu
 ```sh
 #!/bin/bash
 
-NAME="[app_name]"                                       # Name of the application
-DJANGODIR=/webapps/[app_name]                           # Django project directory
-SOCKFILE=/webapps/[app_name]/run/daphne.sock            # we will communicate using this unix socket
-VIRTUAL_ENV=/opt/[app_name]                             # Virtual Environment base directory
-DJANGO_SETTINGS_MODULE=[django_project].settings        # which settings file should Django use
-DJANGO_ASGI_MODULE=[django_project].asgi                # WSGI module name
+NAME="[app_name]"                                                                   # Name of the application
+DJANGODIR=/webapps/[app_name]                                         # Django project directory
+SOCKFILE=/webapps/[app_name]/run/daphne.sock             # we will communicate using this unix socket
+VIRTUAL_ENV=/opt/[app_name]                                                # Virtual Environment base directory
+DJANGO_SETTINGS_MODULE=[django_project].settings      # which settings file should Django use
+DJANGO_ASGI_MODULE=[django_project].asgi                      # WSGI module name
 
 echo "Starting $NAME as `whoami`"
 
