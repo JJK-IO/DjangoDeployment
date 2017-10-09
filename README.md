@@ -37,7 +37,7 @@ init_server --app jjk --server jjk.io --type gunicorn --repository https://git.r
 ```
 
 ### Requirements
-This sript will be looking for a couple files inside your project, so make sure you have them to work.
+This script will be looking for a couple files inside your project, so make sure you have them to work.
 ##### Gunicorn
 ###### gunicorn_start.sh
 ```sh
