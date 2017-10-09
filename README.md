@@ -81,12 +81,12 @@ To run under daphne you need run daphne and your workers separately, thus you mu
 ```sh
 #!/bin/bash
 
-NAME="[app_name]"                                                                   # Name of the application
-DJANGODIR=/webapps/[app_name]                                         # Django project directory
-SOCKFILE=/webapps/[app_name]/run/daphne.sock             # we will communicate using this unix socket
-VIRTUAL_ENV=/opt/[app_name]                                                # Virtual Environment base directory
-DJANGO_SETTINGS_MODULE=[django_project].settings      # which settings file should Django use
-DJANGO_ASGI_MODULE=[django_project].asgi                      # WSGI module name
+NAME="[app_name]"                                       # Name of the application
+DJANGODIR=/webapps/[app_name]                           # Django project directory
+SOCKFILE=/webapps/[app_name]/run/daphne.sock            # we will communicate using this unix socket
+VIRTUAL_ENV=/opt/[app_name]                             # Virtual Environment base directory
+DJANGO_SETTINGS_MODULE=[django_project].settings        # which settings file should Django use
+DJANGO_ASGI_MODULE=[django_project].asgi                # WSGI module name
 
 echo "Starting $NAME as `whoami`"
 
@@ -108,10 +108,10 @@ exec ${VIRTUAL_ENV}/bin/daphne -u ${SOCKFILE} ${DJANGO_ASGI_MODULE}:channel_laye
 ```sh
 #!/bin/bash
 
-NAME="[app_name]_worker"                                      # Name of the application
-DJANGODIR=/webapps/[app_name]                                 # Django project directory
-VIRTUAL_ENV=/opt/[app_name]                                   # Virtual Environment base directory
-DJANGO_SETTINGS_MODULE=[django_project].settings  # which settings file should Django use
+NAME="[app_name]_worker"                                # Name of the application
+DJANGODIR=/webapps/[app_name]                           # Django project directory
+VIRTUAL_ENV=/opt/[app_name]                             # Virtual Environment base directory
+DJANGO_SETTINGS_MODULE=[django_project].settings        # which settings file should Django use
 
 echo "Starting $NAME as `whoami`"
 
