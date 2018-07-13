@@ -6,11 +6,7 @@ Package names may be different in different distros too.
 
 ### Installation
 ```sh
-$ git clone https://github.com/JesterJK/DjangoDeployment.git
-```
-or
-```sh
-$ curl -O https://github.com/JesterJK/DjangoDeployment/archive/master.zip
+$ git clone https://git.jjk.io/jasonk/DjangoDeployment.git
 ```
 
 ### Usage
