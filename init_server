@@ -99,7 +99,7 @@ upstream ${APP_NAME,,} {
 server {
   listen 80;
   listen [::]:80;
-  server_name ${SERVER_NAME,,}
+  server_name ${SERVER_NAME,,};
 
   client_body_in_file_only clean;
   client_body_buffer_size 32K;
