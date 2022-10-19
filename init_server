@@ -63,7 +63,9 @@ function create_log_dir() {
 function create_venv() {
   echo "Creating virtual env..."
   test -d ${VENV_DIR} && sudo rm -r ${VENV_DIR}
-  sudo virtualenv -p /usr/bin/python${PYTHON_VERSION} ${VENV_DIR} || exit 2
+  #sudo virtualenv -p /usr/bin/python${PYTHON_VERSION} ${VENV_DIR} || exit 2
+  sudo python${PYTHON_VERSION} -m venv ${VENV_DIR} || exit 2
+
   sudo chown -R webapps:webapps ${VENV_DIR}
 }
 
