@@ -10,9 +10,6 @@ function help() {
   echo "  --workers [num_workers] specify how many workers you want if using daphne"
   echo "  --repository [url] URL to the git repository that holds the project."
   echo "  --branch [branch_name] URL to the git repository that holds the project."
-  echo "  --python [2/3]] Python version 2 or 3. Only type 2 or 3."
-  echo "  --runserver [y/N] Run server after setup?"
-  echo "  --initdb [y/N] Initialize the database via manage.py migrate? Defaults to no"
   echo "  --interactive [Y/n] run tool interactively or no."
   echo "       For interaction free tool running you must specify the --app --server --type [--workers if --type d] --repository --python flags"
   exit 0
@@ -36,7 +33,7 @@ function update_server() {
   echo "Updating server packages and installing required server apps"
   sudo apt update
   sudo apt upgrade -y
-  sudo apt install -y nginx supervisor python python-virtualenv python-dev python3 python3-virtualenv python3-dev git redis-server build-essential
+  sudo apt install -y nginx supervisor python3 python3-dev git redis-server
   sudo systemctl enable redis-server
   sudo systemctl start redis-server
 }
@@ -63,8 +60,7 @@ function create_log_dir() {
 function create_venv() {
   echo "Creating virtual env..."
   test -d ${VENV_DIR} && sudo rm -r ${VENV_DIR}
-  #sudo virtualenv -p /usr/bin/python${PYTHON_VERSION} ${VENV_DIR} || exit 2
-  sudo python${PYTHON_VERSION} -m venv ${VENV_DIR} || exit 2
+  sudo python3 -m venv ${VENV_DIR} || exit 2
 
   sudo chown -R webapps:webapps ${VENV_DIR}
 }
@@ -191,47 +187,6 @@ function get_worker_count() {
   fi
 }
 
-function start_server() {
-  if [[ -z ${server_start} ]]; then
-    if [[ ${INTERACTIVE} == true ]]; then
-      echo "Would you like to try to start the server? [N/y]"
-      read server_start
-    else
-      server_start="n"
-    fi
-  fi
-  if [[ ${server_start,,} == "y" ]]; then
-    sudo systemctl restart nginx
-    sudo supervisorctl reread
-    sudo supervisorctl reload
-    sudo supervisorctl restart ${APP_NAME,,}
-    if [[ ${APP_TYPE,,} == "daphne" ]]; then
-      for (( c=1; c<=${WORKER_NUM}; c++ ))
-      do
-        sudo supervisorctl restart ${APP_NAME,,}_w${c}
-      done
-    fi
-  fi
-}
-
-function init_db() {
-  if [[ -z ${init_db} ]]; then
-    if [[ ${INTERACTIVE} == true ]]; then
-      echo "Would you like to initialize the database? [N/y]"
-      read init_db
-    else
-      init_db="n"
-    fi
-  fi
-  if [[ ${init_db,,} == "y" ]]; then
-sudo su - webapps << _INITDB
-cd ${APP_DIR}
-source ${VENV_DIR}/bin/activate
-python manage.py migrate
-python manage.py collectstatic --noinput
-_INITDB
-  fi
-}
 INTERACTIVE=true
 if [[ $1 == "-h" ]] || [[ $1 == "--help" ]]; then
   help
@@ -263,18 +218,6 @@ do
     ;;
     --branch)
       BRANCH="$2"
-      shift
-    ;;
-    --python)
-      PYTHON_VERSION="$2"
-      shift
-    ;;
-    --runserver)
-      server_start="$2"
-      shift
-    ;;
-    --initdb)
-      init_db="$2"
       shift
     ;;
     --interactive)
@@ -313,14 +256,6 @@ if [[ ${INTERACTIVE} == true ]]; then
     read REPOSITORY_URL
   fi
 
-  if [ -z "${PYTHON_VERSION}" ]; then
-    echo "What python version would you like to serve this app under? [2/3]"
-    read PYTHON_VERSION
-    if [[ !${PYTHON_VERSION} == 2 ]] || [[ !${PYTHON_VERSION} == 3 ]]; then
-      echo "You must enter \"2\" or \"3\"."
-      exit 2
-    fi
-  fi
 else
   test -z ${APP_NAME} && exit 2
   test -z ${APP_TYPE} && exit 2
@@ -330,7 +265,6 @@ else
   fi
   test -z ${SERVER_NAME} && exit 2
   test -z ${REPOSITORY_URL} && exit 2
-  test -z ${PYTHON_VERSION} && exit 2
 fi
 
 echo APP NAME         = "${APP_NAME}"
@@ -340,7 +274,6 @@ if [[ ${APP_TYPE,,} == "daphne" ]]; then
 fi
 echo SERVER NAME      = "${SERVER_NAME}"
 echo REPOSITORY URL   = "${REPOSITORY_URL}"
-echo PYTHON VERSION   = "${PYTHON_VERSION}"
 
 APP_DIR="/webapps/${APP_NAME,,}"
 LOG_DIR="/var/log/${APP_NAME,,}"
@@ -359,7 +292,5 @@ install_requirements
 check_app_type
 write_nginx
 daphne_workers
-start_server
-init_db
 
 echo "Done"
